@@ -1,5 +1,10 @@
 package dsg.serialization;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -45,12 +50,26 @@ public class DSGEvaluationBaseMessage implements Serializable {
 	
 	public static byte[] message2bytes(DSGEvaluationBaseMessage message) {
 		// TODO Implement method
-		return null;
+		try {
+			ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+			ObjectOutputStream objects = new ObjectOutputStream(bytes);
+			objects.writeObject(message);
+			objects.flush();
+			return bytes.toByteArray();
+		} catch (IOException e) {
+			return null;
+		}
 	}
 
 	public static DSGEvaluationBaseMessage bytes2message(byte[] array) {
 		// TODO Implement method
-		return null;
+		try {
+			ByteArrayInputStream bytes = new ByteArrayInputStream(array);
+			ObjectInputStream objects = new ObjectInputStream(bytes);
+			return (DSGEvaluationBaseMessage) objects.readObject();
+		} catch (IOException | ClassNotFoundException e) {
+			return null;
+		}
 	}
 
 }
