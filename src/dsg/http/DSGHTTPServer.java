@@ -1,7 +1,11 @@
 package dsg.http;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 
+import dsg.network.DSGCall;
+import dsg.network.DSGCall.DSGCallType;
+import dsg.network.DSGMessage;
 import dsg.network.DSGServer;
 
 /**
@@ -12,6 +16,9 @@ public class DSGHTTPServer extends DSGServer {
     // ##################
     // # INITIALIZATION #
     // ##################
+
+    /** The handler processing incoming requests. */
+    private final DSGHTTPHandler handler;
 
     /**
      * Initialize an HTTP server to listen on the named {@code port}, with the given
@@ -26,6 +33,7 @@ public class DSGHTTPServer extends DSGServer {
     public DSGHTTPServer(int port, int threads, DSGHTTPHandler handler) throws IOException {
         super(port, threads);
         // TODO Implement constructor
+        this.handler = handler;
     }
 
     // ##########
@@ -33,4 +41,62 @@ public class DSGHTTPServer extends DSGServer {
     // ##########
 
     // TODO Implement event handling.
+
+    @Override
+    protected void accepted(SocketAddress remote) {
+        network.dispatch(DSGCall.create(DSGCallType.RECEIVE, remote, new DSGHTTPRequest()));
+    }
+
+    @Override
+    protected void received(SocketAddress from, DSGMessage message) {
+        DSGHTTPRequest request = (DSGHTTPRequest) message;
+
+        DSGHTTPResponse response;
+        try {
+            response = handler.handle(request);
+            if (response == null) {
+                response = new DSGHTTPResponse(DSGHTTPStatus.NO_CONTENT);
+            }
+        } catch (DSGHTTPRequestException e) {
+            response = new DSGHTTPResponse(e.getStatus(), e.getMessage());
+        } catch (DSGHTTPException e) {
+            response = new DSGHTTPResponse(DSGHTTPStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        } catch (Exception e) {
+            response = new DSGHTTPResponse(DSGHTTPStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+
+        response.getHeader().set("Connection", "close");
+        network.dispatch(DSGCall.create(DSGCallType.SEND, from, response));
+    }
+
+    @Override
+    protected void sent(SocketAddress to, DSGMessage message) {
+        network.dispatch(DSGCall.create(DSGCallType.CLOSE, to, null));
+    }
+
+    @Override
+    protected void failed(DSGCall call) {
+        switch (call.getType()) {
+        case RECEIVE:
+            IOException exception = call.getException();
+            DSGHTTPResponse response;
+            if (exception instanceof DSGHTTPRequestException) {
+                DSGHTTPRequestException e = (DSGHTTPRequestException) exception;
+                response = new DSGHTTPResponse(e.getStatus(), e.getMessage());
+            } else if (exception instanceof DSGHTTPException) {
+                response = new DSGHTTPResponse(DSGHTTPStatus.BAD_REQUEST, exception.getMessage());
+            } else {
+                network.dispatch(DSGCall.create(DSGCallType.CLOSE, call.getRemote(), null));
+                break;
+            }
+            response.getHeader().set("Connection", "close");
+            network.dispatch(DSGCall.create(DSGCallType.SEND, call.getRemote(), response));
+            break;
+        case SEND:
+            network.dispatch(DSGCall.create(DSGCallType.CLOSE, call.getRemote(), null));
+            break;
+        default:
+            break;
+        }
+    }
 }
