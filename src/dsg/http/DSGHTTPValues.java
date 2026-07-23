@@ -2,7 +2,6 @@ package dsg.http;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -58,8 +57,7 @@ public class DSGHTTPValues {
             throw new IllegalArgumentException(
                     "\"" + type + "\": Invalid media type, (want \"application/x-www-form-urlencoded\")");
         }
-        InputStreamReader reader = new InputStreamReader(body, mediaType.getCharset());
-        String formData = reader.readAllAsString();
+        String formData = new String(body.readAllBytes(), mediaType.getCharset());
         this.decode(formData, mediaType.getCharset());
     }
 

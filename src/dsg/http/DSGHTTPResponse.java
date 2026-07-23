@@ -48,11 +48,15 @@ public class DSGHTTPResponse implements DSGMessage {
      * @param body        the response body.
      */
     public DSGHTTPResponse(DSGHTTPStatus status, DSGHTTPMediaType contentType, InputStream body) {
+        this(status, headerFor(contentType), body);
+    }
+
+    private static DSGHTTPHeader headerFor(DSGHTTPMediaType contentType) {
         DSGHTTPHeader header = new DSGHTTPHeader();
         if (contentType != null) {
             header.add("Content-Type", contentType.toString());
         }
-        this(status, header, body);
+        return header;
     }
 
     /**
@@ -68,14 +72,21 @@ public class DSGHTTPResponse implements DSGMessage {
      * @param body        the response body.
      */
     public DSGHTTPResponse(DSGHTTPStatus status, DSGHTTPMediaType contentType, String body) {
-        ByteArrayInputStream stream = null;
-        if (body != null) {
-            if (contentType == null) {
-                contentType = DSGStandardMediaTypes.PLAINTEXT.withCharset(StandardCharsets.UTF_8);
-            }
-            stream = new ByteArrayInputStream(body.getBytes(contentType.getCharset()));
+        this(status, resolveContentType(contentType, body), bodyStreamFor(resolveContentType(contentType, body), body));
+    }
+
+    private static DSGHTTPMediaType resolveContentType(DSGHTTPMediaType contentType, String body) {
+        if (body != null && contentType == null) {
+            return DSGStandardMediaTypes.PLAINTEXT.withCharset(StandardCharsets.UTF_8);
         }
-        this(status, contentType, stream);
+        return contentType;
+    }
+
+    private static ByteArrayInputStream bodyStreamFor(DSGHTTPMediaType contentType, String body) {
+        if (body == null) {
+            return null;
+        }
+        return new ByteArrayInputStream(body.getBytes(contentType.getCharset()));
     }
 
     /**
