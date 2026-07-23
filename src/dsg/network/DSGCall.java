@@ -116,7 +116,20 @@ public abstract class DSGCall implements DSGTask {
 	
 	public static DSGCall create(DSGCallType type, SocketAddress remote, DSGMessage message) {
 		// TODO Implement method
-		return null;
+		switch (type) {
+		case ACCEPT:
+			return new DSGCallAccept();
+		case CONNECT:
+			return new DSGCallConnect(remote);
+		case SEND:
+			return new DSGCallSend(remote, message);
+		case RECEIVE:
+			return new DSGCallReceive(remote, message);
+		case CLOSE:
+			return new DSGCallClose(remote);
+		default:
+			throw new IllegalArgumentException("Unknown call type: " + type);
+		}
 	}
 	
 }
