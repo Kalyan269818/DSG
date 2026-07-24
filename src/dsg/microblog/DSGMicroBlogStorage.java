@@ -71,7 +71,7 @@ public class DSGMicroBlogStorage {
                     continue;
                 }
                 users.add(user);
-            } catch (URISyntaxException _) {
+            } catch (URISyntaxException e) {
                 continue;
             }
         }
@@ -328,7 +328,7 @@ public class DSGMicroBlogStorage {
                 try {
                     DSGJSONString s = (DSGJSONString) item;
                     this.userIDs.add(s.toString());
-                } catch (ClassCastException _) {
+                } catch (ClassCastException e) {
                     continue;
                 }
             }

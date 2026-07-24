@@ -37,10 +37,9 @@ public class DSGMicroBlogUser extends DSGActivityPubActor {
      * @param password the user's password.
      */
     public DSGMicroBlogUser(URI baseURI, String username, String password) {
-        URI id = baseURI.resolve(String.format(USER_STORAGE_PATH_FMT, username));
-        URI inbox = baseURI.resolve(String.format(INBOX_STORAGE_PATH_FMT, username));
-        URI outbox = baseURI.resolve(String.format(OUTBOX_STORAGE_PATH_FMT, username));
-        super(id, username, inbox, outbox);
+        super(baseURI.resolve(String.format(USER_STORAGE_PATH_FMT, username)), username,
+                baseURI.resolve(String.format(INBOX_STORAGE_PATH_FMT, username)),
+                baseURI.resolve(String.format(OUTBOX_STORAGE_PATH_FMT, username)));
         setPassword(password);
     }
 
