@@ -5,7 +5,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import dsg.http.DSGHTTPException;
-import dsg.http.DSGHTTPHeader;
 import dsg.http.DSGHTTPMediaType;
 import dsg.http.DSGHTTPResponse;
 import dsg.http.DSGHTTPStatus;
@@ -69,17 +68,20 @@ public class DSGRESTRedirect extends DSGRESTRepresentation {
      */
     protected DSGRESTRedirect(URI originalTarget, DSGHTTPResponse response)
             throws URISyntaxException, DSGHTTPException {
-        DSGHTTPHeader header = response.getHeader();
-        String location = header.get(LOCATION_HEADER_NAME);
-        URI target = originalTarget.resolve(new URI(location));
-        String contentType = header.get(CONTENT_TYPE_HEADER_NAME);
-        DSGHTTPMediaType type;
+        this(response.getStatus(), resolveTarget(originalTarget, response), resolveType(response), response.getBody());
+    }
+
+    private static URI resolveTarget(URI originalTarget, DSGHTTPResponse response) throws URISyntaxException {
+        String location = response.getHeader().get(LOCATION_HEADER_NAME);
+        return originalTarget.resolve(new URI(location));
+    }
+
+    private static DSGHTTPMediaType resolveType(DSGHTTPResponse response) throws DSGHTTPException {
+        String contentType = response.getHeader().get(CONTENT_TYPE_HEADER_NAME);
         if (contentType != null && !contentType.isBlank()) {
-            type = new DSGHTTPMediaType(contentType);
-        } else {
-            type = null;
+            return new DSGHTTPMediaType(contentType);
         }
-        this(response.getStatus(), target, type, response.getBody());
+        return null;
     }
 
     /**

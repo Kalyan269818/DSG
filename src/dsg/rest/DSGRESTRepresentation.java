@@ -106,10 +106,8 @@ public class DSGRESTRepresentation {
      * @param form the form's values.
      */
     public DSGRESTRepresentation(DSGHTTPValues form) {
-        byte[] serialized = form.encode().getBytes(StandardCharsets.UTF_8);
-        DSGHTTPMediaType type = DSGStandardMediaTypes.FORM_URL_ENCODED.withCharset(StandardCharsets.UTF_8);
-        ByteArrayInputStream resource = new ByteArrayInputStream(serialized);
-        this(type, resource);
+        this(DSGStandardMediaTypes.FORM_URL_ENCODED.withCharset(StandardCharsets.UTF_8),
+                new ByteArrayInputStream(form.encode().getBytes(StandardCharsets.UTF_8)));
     }
 
     /**
@@ -119,10 +117,14 @@ public class DSGRESTRepresentation {
      * @throws DSGHTTPException if the request's content type is invalid.
      */
     protected DSGRESTRepresentation(DSGHTTPRequest request) throws DSGHTTPException {
+        this(DSGHTTPStatus.OK, requireRequest(request).getHeader(), request.getBody());
+    }
+
+    private static DSGHTTPRequest requireRequest(DSGHTTPRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("request may not be null");
         }
-        this(DSGHTTPStatus.OK, request.getHeader(), request.getBody());
+        return request;
     }
 
     /**
@@ -135,10 +137,14 @@ public class DSGRESTRepresentation {
      *                                  does not define a content type.
      */
     protected DSGRESTRepresentation(DSGHTTPResponse response) throws DSGHTTPException {
+        this(requireResponse(response).getStatus(), response.getHeader(), response.getBody());
+    }
+
+    private static DSGHTTPResponse requireResponse(DSGHTTPResponse response) {
         if (response == null) {
             throw new IllegalArgumentException("response may not be null");
         }
-        this(response.getStatus(), response.getHeader(), response.getBody());
+        return response;
     }
 
     /**

@@ -14,9 +14,13 @@ public class DSGRESTEchoServer extends DSGHTTPServer {
      * @throws IOException If an error occurs while opening the server socket.
      */
     public DSGRESTEchoServer(int port, int threads) throws IOException {
+        super(port, threads, createHandler());
+    }
+
+    private static DSGRESTSkeleton createHandler() {
         DSGRESTSkeleton restHandler = new DSGRESTSkeleton();
-        super(port, threads, restHandler);
         restHandler.exportResource("/", new DSGRESTEchoResource());
+        return restHandler;
     }
 
     /**
