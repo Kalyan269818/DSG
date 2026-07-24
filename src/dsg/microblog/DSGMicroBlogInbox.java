@@ -51,7 +51,23 @@ public class DSGMicroBlogInbox implements DSGActivityPubMailbox {
     public DSGActivityStreamsCollection<DSGActivityStreamsActivity> fetch(DSGActivityPubActor actor)
             throws DSGActivityPubAuthorizationException, DSGActivityPubException {
         // TODO: Implement method
-        throw new UnsupportedOperationException("Client inbox not implemented");
+        if (actor == null || actor.getId() == null || !actor.getId().equals(owner)) {
+            throw new DSGActivityPubAuthorizationException();
+        }
+
+        try {
+            DSGActivityStreamsCollection<DSGActivityStreamsActivity> collection = (DSGActivityStreamsCollection<DSGActivityStreamsActivity>) storage
+                    .getObject(id);
+            if (collection == null) {
+                throw new DSGActivityPubException("Inbox " + id + " does not exist");
+            }
+            // Items are stored in insertion order; fetch() returns them in reverse
+            // (most-recent-first) order instead.
+            Collections.reverse(collection.getItems());
+            return collection;
+        } catch (IOException e) {
+            throw new DSGActivityPubException(e);
+        }
     }
 
     @SuppressWarnings("unchecked")

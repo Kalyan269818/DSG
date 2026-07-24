@@ -86,6 +86,60 @@ public class DSGMicroBlogOutbox implements DSGActivityPubMailbox {
     public URI deliver(DSGActivityPubActor actor, DSGActivityStreamsActivity activity)
             throws DSGActivityPubAuthorizationException, DSGActivityPubException {
         // TODO Implement method
-        throw new UnsupportedOperationException("Delivering to user's outbox not implemented, yet");
+        if (actor == null || actor.getId() == null || !actor.getId().equals(owner)) {
+            throw new DSGActivityPubAuthorizationException();
+        }
+
+        DSGMicroBlogUser user = (DSGMicroBlogUser) actor;
+
+        try {
+            // The server is authoritative for IDs; assign fresh ones to the activity and
+            // (if present) the object it creates, rather than trusting whatever the caller
+            // supplied.
+            URI activityID = user.getNextObjectID();
+            activity.setId(activityID);
+
+            DSGActivityStreamsObject object = activity.getObject();
+            if (object != null) {
+                object.setId(user.getNextObjectID());
+                storage.storeObject(object);
+                router.exportResource(object.getId().getPath(), new DSGActivityPubObjectSkeleton(
+                        new DSGMicroBlogObject(object.getId(), storage), authenticator));
+            }
+
+            // Store the activity itself, add it to the outbox's own collection, and
+            // export a REST resource for it.
+            storage.storeObject(activity);
+            router.exportResource(activityID.getPath(),
+                    new DSGActivityPubObjectSkeleton(new DSGMicroBlogObject(activityID, storage), authenticator));
+
+            DSGActivityStreamsCollection<DSGActivityStreamsActivity> outbox = (DSGActivityStreamsCollection<DSGActivityStreamsActivity>) storage
+                    .getObject(id);
+            if (outbox == null) {
+                throw new DSGActivityPubException("Outbox " + id + " does not exist");
+            }
+            outbox.add(activity);
+            storage.storeObject(outbox);
+
+            // Deliver to all local recipients (i.e. recipients sharing this outbox's origin).
+            for (DSGMicroBlogUser recipient : storage.getUsers()) {
+                if (!activity.hasSameOrigin(recipient.getId()) || !activity.isRecipient(recipient)) {
+                    continue;
+                }
+
+                URI inboxID = recipient.getInbox().getTarget();
+                DSGActivityStreamsCollection<DSGActivityStreamsActivity> inbox = (DSGActivityStreamsCollection<DSGActivityStreamsActivity>) storage
+                        .getObject(inboxID);
+                if (inbox == null) {
+                    continue;
+                }
+                inbox.add(activity);
+                storage.storeObject(inbox);
+            }
+
+            return activityID;
+        } catch (IOException e) {
+            throw new DSGActivityPubException(e);
+        }
     }
 }
