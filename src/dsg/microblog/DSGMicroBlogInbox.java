@@ -75,6 +75,32 @@ public class DSGMicroBlogInbox implements DSGActivityPubMailbox {
     public URI deliver(DSGActivityPubActor actor, DSGActivityStreamsActivity activity)
             throws DSGActivityPubAuthorizationException, DSGActivityPubException {
         // TODO: Implement method
-        throw new UnsupportedOperationException("Federation protocol not supported");
+        DSGActivityStreamsLink activityActor = activity.getActor();
+        if (actor != null && (actor.getId() == null || activityActor == null
+                || !activityActor.targetMatches(actor.getId()))) {
+            throw new IllegalArgumentException("Activity's actor does not match the delivering actor");
+        }
+        if (activityActor != null && activityActor.targetMatches(owner)) {
+            throw new IllegalArgumentException("Cannot deliver an activity authored by the inbox's owner");
+        }
+
+        try {
+            DSGActivityStreamsCollection<DSGActivityStreamsActivity> collection = (DSGActivityStreamsCollection<DSGActivityStreamsActivity>) storage
+                    .getObject(id);
+            if (collection == null) {
+                throw new DSGActivityPubException("Inbox " + id + " does not exist");
+            }
+            for (DSGActivityStreamsActivity existing : collection.getItems()) {
+                if (existing.getId() != null && existing.getId().equals(activity.getId())) {
+                    return null;
+                }
+            }
+
+            collection.add(activity);
+            storage.storeObject(collection);
+            return activity.getId();
+        } catch (IOException e) {
+            throw new DSGActivityPubException(e);
+        }
     }
 }

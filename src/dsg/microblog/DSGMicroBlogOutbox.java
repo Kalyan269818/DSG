@@ -2,9 +2,11 @@ package dsg.microblog;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 
 import dsg.activitypub.DSGActivityPubActor;
 import dsg.activitypub.DSGActivityPubAuthorizationException;
@@ -78,7 +80,30 @@ public class DSGMicroBlogOutbox implements DSGActivityPubMailbox {
     public DSGActivityStreamsCollection<DSGActivityStreamsActivity> fetch(DSGActivityPubActor actor)
             throws DSGActivityPubException {
         // TODO Implement method
-        throw new UnsupportedOperationException("Federation protocol not implemented");
+        try {
+            DSGActivityStreamsCollection<DSGActivityStreamsActivity> collection = (DSGActivityStreamsCollection<DSGActivityStreamsActivity>) storage
+                    .getObject(id);
+            if (collection == null) {
+                throw new DSGActivityPubException("Outbox " + id + " does not exist");
+            }
+
+            // The owner may see everything; everyone else only sees activities they are a
+            // recipient of (which, for unauthenticated actors, reduces to public activities).
+            if (actor != null && actor.getId() != null && actor.getId().equals(owner)) {
+                return collection;
+            }
+
+            List<DSGActivityStreamsActivity> visible = new ArrayList<>();
+            for (DSGActivityStreamsActivity activity : collection.getItems()) {
+                if (activity.isRecipient(actor)) {
+                    visible.add(activity);
+                }
+            }
+            collection.setItems(visible);
+            return collection;
+        } catch (IOException e) {
+            throw new DSGActivityPubException(e);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -135,6 +160,13 @@ public class DSGMicroBlogOutbox implements DSGActivityPubMailbox {
                 }
                 inbox.add(activity);
                 storage.storeObject(inbox);
+            }
+
+            // Hand off delivery to any remote recipients to the federator (which itself
+            // ignores local and public pseudo-addresses); federation support is optional
+            // for DSG-IDistrSys-B, so the federator may be absent.
+            if (federator != null) {
+                federator.federate(activity);
             }
 
             return activityID;
