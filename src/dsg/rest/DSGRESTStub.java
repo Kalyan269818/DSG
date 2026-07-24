@@ -1,14 +1,20 @@
 package dsg.rest;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map.Entry;
 
 import dsg.http.DSGHTTPClient;
+import dsg.http.DSGHTTPException;
 import dsg.http.DSGHTTPHeader;
 import dsg.http.DSGHTTPMediaType;
 import dsg.http.DSGHTTPMethod;
 import dsg.http.DSGHTTPRequest;
+import dsg.http.DSGHTTPResponse;
+import dsg.http.DSGHTTPStatus;
 
 /**
  * Client-side representation of a {@link DSGRESTResource}.
@@ -59,34 +65,94 @@ public class DSGRESTStub implements DSGRESTResource {
     public DSGRESTRepresentation get(DSGRESTContext ctx, DSGHTTPHeader header)
             throws DSGRESTException, DSGRESTRemoteException {
         // TODO Implement method
-        return null;
+        return invoke(DSGHTTPMethod.GET, ctx, null, header);
     }
 
     @Override
     public DSGRESTRepresentation head(DSGRESTContext ctx, DSGHTTPHeader header)
             throws DSGRESTException, DSGRESTRemoteException {
         // TODO Implement method
-        return null;
+        return invoke(DSGHTTPMethod.HEAD, ctx, null, header);
     }
 
     @Override
     public DSGRESTRepresentation put(DSGRESTContext ctx, DSGRESTRepresentation representation)
             throws DSGRESTException, DSGRESTRemoteException {
         // TODO Implement method
-        return null;
+        return invoke(DSGHTTPMethod.PUT, ctx, representation, null);
     }
 
     @Override
     public DSGRESTRepresentation post(DSGRESTContext ctx, DSGRESTRepresentation representation)
             throws DSGRESTException, DSGRESTRemoteException {
         // TODO Implement method
-        return null;
+        return invoke(DSGHTTPMethod.POST, ctx, representation, null);
     }
 
     @Override
     public DSGRESTRepresentation delete(DSGRESTContext ctx) throws DSGRESTException, DSGRESTRemoteException {
         // TODO Implement method
-        return null;
+        return invoke(DSGHTTPMethod.DELETE, ctx, null, null);
+    }
+
+    /**
+     * Build and send an HTTP request for {@code method}, then transform the
+     * response into the corresponding return value or exception.
+     *
+     * @param method         the HTTP method to call.
+     * @param ctx            a REST context.
+     * @param representation a byte representation of a REST resource, used as the
+     *                       request body for PUT/POST calls.
+     * @param extraHeader    additional header fields to add to the request, used by
+     *                       GET/HEAD calls.
+     * @return the resource representation returned by the server.
+     * @throws DSGRESTException       if the server-side method call failed.
+     * @throws DSGRESTRemoteException if a communication-related error occurred.
+     */
+    private DSGRESTRepresentation invoke(DSGHTTPMethod method, DSGRESTContext ctx,
+            DSGRESTRepresentation representation, DSGHTTPHeader extraHeader)
+            throws DSGRESTException, DSGRESTRemoteException {
+        DSGHTTPRequest request = buildRequest(method, ctx, representation);
+        if (extraHeader != null) {
+            DSGHTTPHeader requestHeader = request.getHeader();
+            for (Entry<String, List<String>> field : extraHeader.fields().entrySet()) {
+                for (String value : field.getValue()) {
+                    requestHeader.add(field.getKey(), value);
+                }
+            }
+        }
+
+        DSGHTTPResponse response;
+        try {
+            response = client.communicate(request);
+        } catch (IOException e) {
+            throw new DSGRESTRemoteException(e);
+        }
+
+        DSGHTTPStatus status = response.getStatus();
+        if (status == DSGHTTPStatus.NO_CONTENT) {
+            return null;
+        }
+
+        int code = status.getCode();
+        if (code >= 200 && code < 300) {
+            try {
+                return new DSGRESTRepresentation(response);
+            } catch (DSGHTTPException e) {
+                throw new DSGRESTRemoteException(e);
+            }
+        }
+        if (code >= 300 && code < 400) {
+            try {
+                return new DSGRESTRedirect(target, response);
+            } catch (URISyntaxException | DSGHTTPException e) {
+                throw new DSGRESTRemoteException(e);
+            }
+        }
+        if (status == DSGHTTPStatus.METHOD_NOT_ALLOWED) {
+            throw new UnsupportedOperationException("Method not implemented");
+        }
+        throw new DSGRESTException(status);
     }
 
     // ########################
