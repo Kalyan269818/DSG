@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Federated MicroBlog</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.css" rel="stylesheet">
+</head>
+
+<body class="min-vh-100">
+    <div class="container">
+        <div class="row">
+            <div id="left-sidebar" class="col-3 mt-5">
+                <p>
+                    This is the web-frontend of your <strong><code>DSGMicroBlogServer</code></strong>
+                    implementation. If you are not already logged in with the identity of a MicroBlog
+                    user, you can either create a new user or use one of the two default users
+                    (<a href="/user/alice">alice</a> and <a href="/user/bob">bob</a>).
+                </p>
+            </div>
+            <div class="col-6 border p-0">
+                <nav class="navbar navbar-expand-lg bg-primary border-bottom sticky-top" data-bs-theme="dark">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="#">MicroBlog <span id="actor-name">- Actor's Profile</span></a>
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link" href="/">Home</a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+                <div id="content">
+                    <form id="post-form" class="p-3 border-bottom d-none">
+                        <div class="mb-3">
+                            <label for="recipients">To</label>
+                            <input type="url" class="form-control" id="recipients"
+                                placeholder="https://www.w3.org/ns/activitystreams#Public, ...">
+                        </div>
+                        <div class="mb-3">
+                            <label for="new-post" class="form-label">Note</label>
+                            <textarea class="form-control" id="new-post" rows="4"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button id="post-button" type="submit" class="btn btn-primary mb-3">Send</button>
+                        </div>
+                    </form>
+                    <nav id="mailbox-nav" class="d-none">
+                        <div class="nav nav-underline nav-justified" role="tablist">
+                            <button class="nav-link active" id="nav-inbox-tab" data-bs-toggle="tab"
+                                data-bs-target="#inbox" type="button" role="tab" aria-controls="inbox"
+                                aria-selected="true">Inbox</button>
+                            <button class="nav-link" id="nav-outbox-tab" data-bs-toggle="tab" data-bs-target="#outbox"
+                                type="button" role="tab" aria-controls="outbox">Outbox</button>
+                        </div>
+                    </nav>
+                    <main id="mailbox-content" class="tab-content border-top p-0 d-none">
+                        <div class="tab-pane fade show active p-3" id="inbox" role="tabpanel"
+                            aria-labelledby="nav-inbox-tab" tabindex="0">
+                        </div>
+                        <div class="tab-pane fade p-3" id="outbox" role="tabpanel" aria-labelledby="nav-outbox-tab"
+                            tabindex="1">
+                        </div>
+                    </main>
+                </div>
+            </div>
+            <div id="right-sidebar" class="col-3 p-3 mt-5">
+                <div id="sign-in-and-up-buttons" class="d-grid gap-2">
+                    <a href="/register.html" class="btn btn-primary">Create a MicroBlog User</a>
+                    <a href="/login" class="btn btn-outline-primary">Login as MicroBlog User</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/activitypub.js"></script>
+</body>
+
+<template id="note-template">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title username"></h5>
+            <h6 class="card-subtitle mb-2 text-body-secondary account-id"></h6>
+            <p class="note-text">
+            </p>
+        </div>
+    </div>
+</template>
+
+</html>
