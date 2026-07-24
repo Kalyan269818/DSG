@@ -24,6 +24,7 @@ public class DSGCallAccept extends DSGCall {
 			}
 
 			Socket socket = serverSocket.accept();
+			socket.setTcpNoDelay(true);
 			SocketAddress client = socket.getRemoteSocketAddress();
 
 			network.putSocket(client, socket);

@@ -45,6 +45,11 @@ public class DSGClient {
 		perform(DSGCall.create(DSGCallType.CLOSE, address, null));
 	}
 
+	/* Used by subclasses (e.g. DSGHTTPClient) to check whether a connection to address is already open */
+	protected boolean isConnected(SocketAddress address) {
+		return network.isConnected(address);
+	}
+
 	/* Submits a call, blocks until it terminates, and signals a failure via an exception */
 	private void perform(DSGCall call) throws IOException {
 		network.dispatch(call);

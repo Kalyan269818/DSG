@@ -68,7 +68,9 @@ public class DSGHTTPClient extends DSGClient {
             SocketAddress address = addressFor(request.getTarget());
             request.getHeader().set("Connection", this.keepAlive ? "keep-alive" : "close");
 
-            connect(address);
+            if (!this.keepAlive || !isConnected(address)) {
+                connect(address);
+            }
             send(address, request);
 
             DSGHTTPResponse response = new DSGHTTPResponse();
@@ -80,7 +82,7 @@ public class DSGHTTPClient extends DSGClient {
                 continue;
             }
 
-            if (!this.keepAlive) {
+            if (!this.keepAlive || isConnectionClose(response)) {
                 close(address);
             }
             return response;
@@ -108,6 +110,15 @@ public class DSGHTTPClient extends DSGClient {
     private boolean isRedirect(DSGHTTPStatus status) {
         int code = status.getCode();
         return code >= 300 && code < 400;
+    }
+
+    /**
+     * Return whether {@code response} indicates that the connection should be
+     * closed, i.e. its Connection header field is set to "close".
+     */
+    private boolean isConnectionClose(DSGHTTPResponse response) {
+        String connection = response.getHeader().get("Connection");
+        return connection != null && connection.equalsIgnoreCase("close");
     }
 
     /**

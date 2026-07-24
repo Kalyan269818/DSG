@@ -19,6 +19,7 @@ public class DSGCallConnect extends DSGCall {
 		try {
 			Socket socket = new Socket();
 			socket.connect(remote);
+			socket.setTcpNoDelay(true);
 
 			network.putSocket(remote, socket);
 			setStatus(DSGCallStatus.SUCCESS);

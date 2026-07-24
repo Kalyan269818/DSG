@@ -118,6 +118,11 @@ public class DSGNetwork {
 		return sockets.remove(remote);
 	}
 
+	/* Used by DSGClient to check whether a connection to remote is already open, e.g. for HTTP keep-alive */
+	synchronized boolean isConnected(SocketAddress remote) {
+		return sockets.containsKey(remote);
+	}
+
 	/* Used by DSGCallAccept; null on the client side */
 	ServerSocket getServerSocket() {
 		return serverSocket;

@@ -65,13 +65,35 @@ public class DSGHTTPServer extends DSGServer {
             response = new DSGHTTPResponse(DSGHTTPStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
 
-        response.getHeader().set("Connection", "close");
+        response.getHeader().set("Connection", shouldClose(request) ? "close" : "keep-alive");
         network.dispatch(DSGCall.create(DSGCallType.SEND, from, response));
+    }
+
+    /**
+     * Return whether the connection should be closed after responding to
+     * {@code request}, based on its HTTP version and Connection header field.
+     */
+    private boolean shouldClose(DSGHTTPRequest request) {
+        String connection = request.getHeader().get("Connection");
+        boolean keepAliveRequested = connection != null && connection.equalsIgnoreCase("keep-alive");
+        boolean closeRequested = connection != null && connection.equalsIgnoreCase("close");
+
+        if (request.getVersion().equals("HTTP/1.0")) {
+            return !keepAliveRequested;
+        }
+        return closeRequested;
     }
 
     @Override
     protected void sent(SocketAddress to, DSGMessage message) {
-        network.dispatch(DSGCall.create(DSGCallType.CLOSE, to, null));
+        DSGHTTPResponse response = (DSGHTTPResponse) message;
+        String connection = response.getHeader().get("Connection");
+        if (connection != null && connection.equalsIgnoreCase("close")) {
+            network.dispatch(DSGCall.create(DSGCallType.CLOSE, to, null));
+        } else {
+            // Connection stays open; keep listening for the client's next request on it.
+            network.dispatch(DSGCall.create(DSGCallType.RECEIVE, to, new DSGHTTPRequest()));
+        }
     }
 
     @Override
