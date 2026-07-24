@@ -88,7 +88,42 @@ public class DSGActivityPubMailboxStub implements DSGActivityPubMailbox {
     public URI deliver(DSGActivityPubActor actor, DSGActivityStreamsActivity activity)
             throws DSGActivityPubAuthorizationException, DSGActivityPubException {
         // TODO Implement method
-        return null;
+        DSGJSONValue json = activity.toJSON();
+        DSGRESTRepresentation representation = new DSGRESTRepresentation(DSGStandardMediaTypes.ACTIVITY_STREAMS,
+                json.toInputStream(DSGStandardMediaTypes.ACTIVITY_STREAMS.getCharset()));
+        if (actor != null && actor.getAuthorization() != null) {
+            representation.getHeader().set("Authorization", actor.getAuthorization());
+        }
+
+        DSGRESTContext ctx = new DSGRESTContext();
+        ctx.addAcceptedRepresentation(DSGStandardMediaTypes.ACTIVITY_STREAMS);
+
+        try {
+            DSGRESTRepresentation result;
+            try {
+                result = stub.post(ctx, representation);
+            } catch (DSGRESTRemoteException e) {
+                throw new DSGActivityPubException(e);
+            }
+
+            String location = result.getHeader().get("Location");
+            if (location == null) {
+                return null;
+            }
+            return stub.getTarget().resolve(location);
+        } catch (DSGRESTException re) {
+            switch (re.getStatus()) {
+            case NOT_FOUND:
+            case GONE:
+                return null;
+            case UNAUTHORIZED:
+                throw new DSGActivityPubAuthorizationException();
+            case BAD_REQUEST:
+                throw new IllegalArgumentException(re);
+            default:
+                throw new DSGActivityPubException(re);
+            }
+        }
     }
 
 }

@@ -85,6 +85,34 @@ public class DSGActivityPubMailboxSkeleton extends DSGAbstractRESTResource {
     public DSGRESTRepresentation post(DSGRESTContext ctx, DSGRESTRepresentation representation)
             throws DSGRESTException {
         // TODO Implement method
-        throw new UnsupportedOperationException("Delivery not implemented, yet");
+        String authorization = representation.getHeader().get("Authorization");
+        try {
+            DSGActivityPubActor actor = authenticator.authenticate(authorization);
+
+            DSGActivityStreamsActivity activity;
+            try (DSGActivityPubReader reader = new DSGActivityPubReader(representation)) {
+                DSGActivityStreamsEntity entity = reader.read();
+                if (!(entity instanceof DSGActivityStreamsActivity)) {
+                    throw new DSGJSONException("Expected an activity");
+                }
+                activity = (DSGActivityStreamsActivity) entity;
+            }
+
+            URI location = mailbox.deliver(actor, activity);
+            if (location == null) {
+                return new DSGRESTRepresentation(DSGHTTPStatus.OK);
+            }
+
+            DSGRESTRepresentation result = new DSGRESTRepresentation(DSGHTTPStatus.CREATED);
+            result.getHeader().set("Location", location.toString());
+            return result;
+        } catch (DSGJSONException | IllegalArgumentException e) {
+            throw new DSGRESTException(DSGHTTPStatus.BAD_REQUEST);
+        } catch (DSGActivityPubAuthorizationException ae) {
+            throw new DSGRESTException(DSGHTTPStatus.UNAUTHORIZED);
+        } catch (DSGActivityPubException | IOException e) {
+            e.printStackTrace();
+            throw new DSGRESTException(DSGHTTPStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
